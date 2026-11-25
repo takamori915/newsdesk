@@ -1,0 +1,1348 @@
+<title>ニュースデスク</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: left tag menu (a slide-in drawer on phones) beside one narrow reading column. Date rail on the left of each story, settings folded into a panel above the feed. */
+:root {
+  --bg: #EDF0F3;
+  --surface: #FFFFFF;
+  --ink: #0F1A24;
+  --muted: #586674;
+  --line: #D3DAE1;
+  --chip: #E3E8ED;
+  --accent: #0A58B8;
+  --accent-ink: #FFFFFF;
+  --mark: #FFE58A;
+  --mark-ink: #2A2100;
+  --warn: #9A4A00;
+  --warn-bg: #FBEBD8;
+  --scrim: rgba(8, 12, 16, 0.5);
+  --font-body: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C1217;
+    --surface: #141C24;
+    --ink: #E7EDF2;
+    --muted: #8E9CA9;
+    --line: #25303A;
+    --chip: #1E2832;
+    --accent: #7DB8F5;
+    --accent-ink: #0C1217;
+    --mark: #6B5A12;
+    --mark-ink: #FFF3C4;
+    --warn: #F0B27A;
+    --warn-bg: #3A2A18;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C1217;
+  --surface: #141C24;
+  --ink: #E7EDF2;
+  --muted: #8E9CA9;
+  --line: #25303A;
+  --chip: #1E2832;
+  --accent: #7DB8F5;
+  --accent-ink: #0C1217;
+  --mark: #6B5A12;
+  --mark-ink: #FFF3C4;
+  --warn: #F0B27A;
+  --warn-bg: #3A2A18;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.7;
+}
+.wrap {
+  box-sizing: border-box;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+h1 {
+  margin: 4px 0 0;
+  font-size: 1.7rem;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.menu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* shell: tag menu + main column */
+.shell { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin-top: 8px; }
+.main { min-width: 0; }
+
+.menu {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  box-sizing: border-box;
+  width: min(80vw, 280px);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 20px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: 16px;
+  overflow-y: auto;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  transform: translateX(-100%);
+  visibility: hidden;
+}
+body.menu-open .menu { transform: none; visibility: visible; }
+.scrim { position: fixed; inset: 0; z-index: 15; background: var(--scrim); }
+.menu-h { margin: 0 0 10px; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 400; letter-spacing: 0.08em; color: var(--muted); }
+.menu ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.tag-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.tag-btn:hover { background: var(--chip); }
+.tag-btn[aria-current="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.tag-btn .cnt { font-family: var(--font-mono); font-size: 0.78rem; opacity: 0.8; }
+.tag-btn .lbl { min-width: 0; overflow-wrap: anywhere; }
+.udot { display: inline-block; width: 7px; height: 7px; margin-left: 8px; border-radius: 50%; background: var(--accent); vertical-align: middle; }
+.tag-btn[aria-current="true"] .udot { background: var(--accent-ink); }
+.tag-add { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.tag-btn.add { color: var(--accent); font-size: 0.9rem; }
+.tag-form { display: grid; gap: 8px; margin-top: 8px; }
+.tag-form label { display: grid; gap: 2px; font-size: 0.78rem; color: var(--muted); }
+.tag-form .row2 { display: flex; gap: 8px; }
+.tag-msg { margin: 0; font-size: 0.76rem; color: var(--warn); }
+
+@media (min-width: 761px) {
+  .shell { grid-template-columns: 190px minmax(0, 1fr); gap: 32px; }
+  .menu-btn, .scrim { display: none !important; }
+  .menu {
+    position: sticky;
+    top: 20px;
+    z-index: auto;
+    align-self: start;
+    width: auto;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    transform: none;
+    visibility: visible;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .menu { transition: transform 0.2s ease, visibility 0.2s; }
+  .chip, .btn, .tag-btn { transition: background-color 0.15s; }
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.stats b { color: var(--ink); font-weight: 500; }
+.refresh { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; }
+.rstat { min-width: 0; font-size: 0.8rem; color: var(--muted); overflow-wrap: anywhere; }
+
+/* settings panel */
+details.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+details.panel > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+details.panel > summary::-webkit-details-marker { display: none; }
+summary .t { font-weight: 700; }
+summary .t::after { content: " +"; font-family: var(--font-mono); color: var(--accent); }
+details[open] > summary .t::after { content: " −"; }
+summary .s { min-width: 0; font-family: var(--font-mono); font-size: 0.74rem; color: var(--muted); }
+.panel-body { display: grid; gap: 20px; padding: 16px 14px; border-top: 1px solid var(--line); }
+.group h2 { margin: 0; font-size: 0.86rem; font-weight: 700; }
+.scope { margin-left: 6px; font-family: var(--font-mono); font-size: 0.72rem; font-weight: 400; color: var(--accent); }
+.shared { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; font-size: 0.76rem; color: var(--muted); }
+.shared .chip { min-height: 24px; padding: 0 8px; font-size: 0.78rem; opacity: 0.75; }
+.hint { margin: 0 0 8px; font-size: 0.76rem; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 8px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 2px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--chip);
+  color: var(--ink);
+  font-size: 0.84rem;
+}
+button.chip { cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.chip.watch { background: var(--mark); color: var(--mark-ink); }
+.chip .x { padding: 0 2px; border: 0; background: none; font-size: 1.05rem; line-height: 1; cursor: pointer; }
+form.add { display: flex; gap: 8px; margin-top: 8px; }
+.txt {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 16px;
+}
+form.add .txt { flex: 1; width: auto; }
+.btn { padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 0.85rem; cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.danger { border-color: var(--warn); color: var(--warn); }
+.btn[disabled] { opacity: 0.55; cursor: default; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; }
+label.field { display: inline-flex; align-items: center; gap: 8px; font-size: 0.86rem; }
+select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); font-size: 16px; }
+.saved { margin: 10px 0 0; font-size: 0.76rem; color: var(--muted); }
+.gh { margin: 0 0 6px; font-size: 0.9rem; font-weight: 700; }
+.io-text { box-sizing: border-box; width: 100%; min-height: 9rem; margin-top: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: 0.74rem/1.5 var(--font-mono); resize: vertical; }
+.io-msg { margin: 8px 0 0; font-size: 0.8rem; color: var(--muted); min-height: 1.2em; }
+.io-file { font-size: 0.8rem; max-width: 100%; }
+.custom-list { display: grid; gap: 0; }
+.custom-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.custom-row .nm { min-width: 0; font-size: 0.88rem; overflow-wrap: anywhere; }
+.custom-row .q { display: block; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); }
+
+/* feed */
+.view { display: flex; align-items: baseline; gap: 10px; margin: 22px 0 0; font-size: 1.15rem; font-weight: 700; }
+.view small { font-family: var(--font-mono); font-size: 0.76rem; font-weight: 400; color: var(--muted); }
+.feed { margin: 10px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.item { display: grid; grid-template-columns: 3.3rem minmax(0, 1fr); gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.when { font-family: var(--font-mono); line-height: 1.2; }
+.md { display: block; font-size: 1rem; font-weight: 500; }
+.wd { display: block; margin-top: 2px; font-size: 0.72rem; color: var(--muted); }
+.dot { display: block; width: 8px; height: 8px; margin-top: 10px; border-radius: 50%; background: var(--accent); }
+.item[data-unread="false"] .dot { visibility: hidden; }
+.item[data-unread="false"] .title a { color: var(--muted); }
+.body { min-width: 0; }
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); }
+.org { padding: 1px 6px; border-radius: 4px; background: var(--chip); color: var(--ink); }
+.badge { padding: 1px 6px; border-radius: 4px; background: var(--warn-bg); color: var(--warn); }
+.title { margin: 6px 0 4px; font-size: 1.02rem; line-height: 1.5; font-weight: 700; text-wrap: balance; }
+.title a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.title a::after { content: " ↗"; font-family: var(--font-mono); font-size: 0.8em; white-space: nowrap; }
+.title a:hover { text-decoration-thickness: 2px; }
+.sum { margin: 0; font-size: 0.9rem; overflow-wrap: anywhere; }
+.foot { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); }
+.foot a { color: var(--accent); }
+mark { padding: 0 2px; border-radius: 2px; background: var(--mark); color: var(--mark-ink); }
+.empty { padding: 28px 0; color: var(--muted); }
+.empty .btn { margin-top: 10px; }
+.note { display: grid; gap: 4px; margin-top: 28px; font-size: 0.78rem; color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header>
+    <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="menu">☰ <span id="menu-label">すべて</span></button>
+    <div class="eyebrow">NEWS DESK / 初期データ 2026.10.29</div>
+    <h1>ニュースデスク</h1>
+    <div class="stats" id="stats" aria-live="polite"></div>
+    <div class="refresh" id="refresh-row" hidden>
+      <label class="field">取得期間
+        <select id="refresh-days">
+          <option value="3">直近3日</option>
+          <option value="7">直近1週間</option>
+          <option value="14">直近2週間</option>
+          <option value="30">直近1か月</option>
+        </select>
+      </label>
+      <button class="btn primary" id="refresh-btn" type="button">↻ 最新を取得</button>
+      <span class="rstat" id="refresh-status" aria-live="polite"></span>
+    </div>
+  </header>
+
+  <div class="shell">
+    <div class="scrim" id="scrim" hidden></div>
+    <nav class="menu" id="menu" aria-label="タグ">
+      <h2 class="menu-h">TAGS</h2>
+      <ul id="menu-list"></ul>
+      <div class="tag-add" id="tag-add" hidden>
+        <button class="tag-btn add" id="tag-add-btn" type="button" aria-expanded="false" aria-controls="tag-form">＋ タグを追加</button>
+        <form class="tag-form" id="tag-form" hidden>
+          <label>タグの名前
+            <input class="txt" id="tag-name" type="text" maxlength="20" placeholder="例:プロ野球、F1、料理" autocomplete="off">
+          </label>
+          <label>探すキーワード(省略可)
+            <input class="txt" id="tag-query" type="text" maxlength="80" placeholder="例:NPB 日本シリーズ 速報" autocomplete="off">
+          </label>
+          <p class="tag-msg" id="tag-msg" aria-live="polite"></p>
+          <div class="row2">
+            <button class="btn primary" type="submit">追加</button>
+            <button class="btn" type="button" id="tag-cancel">やめる</button>
+          </div>
+        </form>
+      </div>
+    </nav>
+
+    <main class="main">
+      <details class="panel" id="panel">
+        <summary><span class="t">表示設定</span><span class="s" id="settings-summary"></span></summary>
+        <div class="panel-body">
+          <section class="group">
+            <h2>ウォッチワード <span class="scope" id="watch-scope"></span></h2>
+            <p class="hint">含む記事を強調します。並び順を「ウォッチ優先」にすると先頭に出します。いま選んでいるタグ用のワードです。「すべて」に入れたワードは全タグで効きます。</p>
+            <div class="chips" id="watch-chips"></div>
+            <div class="shared" id="watch-shared" hidden></div>
+            <form class="add" id="watch-form">
+              <input class="txt" id="watch-input" type="text" maxlength="30" placeholder="例:Gemini、大谷、Switch" autocomplete="off" aria-label="ウォッチワードを追加">
+              <button class="btn primary" type="submit">追加</button>
+            </form>
+          </section>
+
+          <section class="group">
+            <h2>ミュートワード <span class="scope" id="mute-scope"></span></h2>
+            <p class="hint">含む記事を一覧から隠します。いま選んでいるタグ用のワードです。「すべて」に入れたワードは全タグで効きます。</p>
+            <div class="chips" id="mute-chips"></div>
+            <div class="shared" id="mute-shared" hidden></div>
+            <form class="add" id="mute-form">
+              <input class="txt" id="mute-input" type="text" maxlength="30" placeholder="例:噂、予想" autocomplete="off" aria-label="ミュートワードを追加">
+              <button class="btn primary" type="submit">追加</button>
+            </form>
+          </section>
+
+          <section class="group" id="sub-group">
+            <h2>絞り込み</h2>
+            <p class="hint">選んだものだけを表示します。選ばないときはすべて表示します。</p>
+            <div class="chips" id="sub-chips"></div>
+          </section>
+
+          <section class="group" id="custom-group" hidden>
+            <h2>追加したタグ</h2>
+            <p class="hint">削除すると、そのタグで集めたニュースも消えます。</p>
+            <div class="custom-list" id="custom-list"></div>
+          </section>
+
+          <section class="group">
+            <div class="row">
+              <label class="field"><input type="checkbox" id="opt-unconfirmed"> 予定・未確認の情報も表示</label>
+              <label class="field">件数
+                <select id="opt-limit">
+                  <option value="5">5件</option>
+                  <option value="10">10件</option>
+                  <option value="20">20件</option>
+                  <option value="0">すべて</option>
+                </select>
+              </label>
+              <label class="field">並び順
+                <select id="opt-sort">
+                  <option value="date">日付順</option>
+                  <option value="watch">ウォッチ優先</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="group">
+            <h3 class="gh">データの書き出し・取り込み(JSON)</h3>
+            <p class="saved" style="margin-top:0">追加したタグ、ウォッチ/ミュートワード、表示設定、取得したニュースをJSONにまとめます。別の環境へ移すときや、バックアップに使えます。</p>
+            <div class="row" style="margin-top:10px">
+              <button class="btn" type="button" id="io-export">書き出す</button>
+              <button class="btn" type="button" id="io-copy">コピー</button>
+              <button class="btn" type="button" id="io-save">ファイルに保存</button>
+            </div>
+            <div class="row" style="margin-top:10px">
+              <input class="io-file" type="file" id="io-file" accept=".json,application/json">
+              <button class="btn" type="button" id="io-import">取り込む</button>
+            </div>
+            <textarea class="io-text" id="io-text" spellcheck="false" aria-label="JSON" placeholder="ここに書き出したJSONが出ます。取り込むときは、ファイルを選ぶか、ここにJSONを貼り付けてください。"></textarea>
+            <p class="io-msg" id="io-msg" aria-live="polite"></p>
+          </section>
+
+          <section class="group">
+            <div class="row">
+              <button class="btn" type="button" id="mark-all">表示中のタグを既読にする</button>
+              <button class="btn" type="button" id="reset">設定を初期化</button>
+            </div>
+            <p class="saved">ウォッチ・ミュートなどの設定、選んだタグ、既読は、この端末のブラウザに保存されます。追加したタグと取得したニュースは、このページのデータとして保存されます。</p>
+          </section>
+        </div>
+      </details>
+
+      <h2 class="view"><span id="view-title">すべて</span><small id="view-count"></small></h2>
+      <ol class="feed" id="feed"></ol>
+
+      <footer class="note">
+        <span>出典は二次情報のまとめ記事や速報記事が中心です。重要な点は公式発表や一次報道で確認してください。</span>
+        <span>「↻ 最新を取得」は、Claude が表示中のタグ(「すべて」なら全タグ)のニュースを検索して追加します。数分かかります。</span>
+      </footer>
+    </main>
+  </div>
+</div>
+
+<script>
+(function () {
+  var KEY = "ai-news-desk-v1";
+  var TRIGGER_ID = "trig_016zGEhTWPCPa7RCynJmYkT6";
+  var CONNECTOR = "Claude Code Remote";
+
+  var BASE_TAGS = [
+    { id: "ai", label: "AI", query: "AI 生成AI 大規模言語モデル 最新ニュース", builtin: true },
+    { id: "sports", label: "スポーツ", query: "プロ野球 日本シリーズ MLB ワールドシリーズ Jリーグ スポーツ 速報", builtin: true },
+    { id: "game", label: "ゲーム", query: "ゲーム 新作 発売 Switch 2 PS5 ニュース", builtin: true },
+    { id: "gadget", label: "ガジェット", query: "ガジェット スマートフォン PC 新製品 発表 ニュース", builtin: true }
+  ];
+
+  var SRC_AI = "https://www.thehansindia.com/tech/upcoming-ai-updates-in-october-2026-major-developments-to-watch-1127036";
+  var SRC_CLAUDE = "https://www.orcarouter.ai/blog/claude-news-what-anthropic-shipped-in-october-2026";
+  var SRC_GAME = "https://bestcalendar.jp/release/game/2026/10";
+
+  var NEWS = [
+    /* AI */
+    { id: "ap1", date: "2026-10-27", tags: ["ai", "gadget"], sub: "Apple", kind: "OS",
+      title: "iOS 27.2 が配信開始、Siri AI が日本語に対応",
+      summary: "会話の自然さを高めた Siri AI が、日本語、フランス語、韓国語、ポルトガル語、スペイン語で使えるようになった。EU と中国本土では利用できず、対象は iPhone 16 以降と iPhone 15 Pro 系など。ほかに iPhone Duo の Apple Pencil(USB-C)対応、AI生成画像の判別用ウォーターマーク対応が加わった。",
+      src: "iphone-mania.jp", url: "https://iphone-mania.jp/ios-608002/" },
+    { id: "a1", date: "2026-10-22", tags: ["ai"], sub: "Anthropic", kind: "標準",
+      title: "Agent Skills をオープンな標準として寄贈",
+      summary: "エージェント機能の仕組み Agent Skills が、Linux Foundation 傘下の Agentic AI Foundation に寄贈された。同日、ライフサイエンス分野のゲスト研究者の募集も告知されている。",
+      src: "orcarouter.ai", url: SRC_CLAUDE },
+    { id: "a2", date: "2026-10-21", tags: ["ai"], sub: "Anthropic", kind: "製品",
+      title: "Claude Security が Enterprise 向けにパブリックベータへ",
+      summary: "セキュリティ製品 Claude Security の公開ベータが Enterprise プランで始まった。同日、研究プレビューの Claude Duet は米国の Pro・Max 加入者を対象に待機リストの受付を開始している。",
+      src: "orcarouter.ai", url: SRC_CLAUDE },
+    { id: "a3", date: "2026-10-18", tags: ["ai"], sub: "Anthropic", kind: "経営",
+      title: "自社株の5%を公益基金に拠出する方針を発表",
+      summary: "新設の Anthropic Public Benefit Fund に株式の5%を拠出する。株主の承認が前提で、企業価値が基準を超えて伸びた場合の追加拠出の枠組みも含まれる。",
+      src: "orcarouter.ai", url: SRC_CLAUDE },
+    { id: "a4", date: "2026-10-15", tags: ["ai"], sub: "Anthropic", kind: "製品",
+      title: "Code Review が一般提供(GA)に",
+      summary: "コードレビュー機能が GA となり、Team と Enterprise プランで使えるようになった。",
+      src: "orcarouter.ai", url: SRC_CLAUDE },
+    { id: "a5", date: "2026-10-08", tags: ["ai"], sub: "Anthropic", kind: "製品",
+      title: "ドキュメント・スライド・デザイン機能が全プランで利用可能に",
+      summary: "ベータを終えた3機能が、無料プランを含むすべてのプランで使えるようになった。Claude Dashboards と Claude Motion はベータ版として公開された。",
+      src: "orcarouter.ai", url: SRC_CLAUDE },
+    { id: "o1", date: "2026-10-07", tags: ["ai"], sub: "OpenAI", kind: "モデル",
+      title: "GPT-6 が ChatGPT の全ユーザーに順次提供",
+      summary: "有料プランは GPT-6 Sol、無料・Go プランは10月8日から GPT-6 Luna が使われる。図表やボタンを含む対話的な Intelligent UI が加わった。システムカードには、一部の有害コンテンツ分類で前世代より悪化した点があるとされる。",
+      src: "andrew.ooo", url: "https://andrew.ooo/answers/what-changed-latest-openai-model-release-gpt-6-october-2026/",
+      caveat: "解説記事1本のみに基づく情報です" },
+    { id: "a6", date: "2026-10-07", tags: ["ai"], sub: "Anthropic", kind: "モデル",
+      title: "小型モデル Claude Haiku 5.5 を発表",
+      summary: "要約、サブエージェント、ブラウザ操作といった用途を想定した小型モデル。",
+      src: "orcarouter.ai", url: SRC_CLAUDE },
+    { id: "o2", date: "2026-09-29", tags: ["ai"], sub: "OpenAI", kind: "製品",
+      title: "DevDay 2026:常時稼働エージェント dots や GPT-6.1 Sol などを発表",
+      summary: "dots は GPT-6 Astra で動く常時稼働のエージェントで、4,000以上のアプリと連携する。GPT-6.1 Sol は Astra に近い性能を約5分の1の料金で提供するとされる。上位プラン Pro 500、Codex の刷新、Amazon との Bedrock Managed Agents なども含まれる。",
+      src: "agentpedia.codes", url: "https://agentpedia.codes/blog/openai-devday-2026-everything-announced",
+      caveat: "まとめ記事に基づく内容です。開催日は米太平洋時間" },
+    { id: "m1", date: "2026-09-29", tags: ["ai"], sub: "Meta", kind: "噂", flag: "rumor",
+      title: "消費者向けエージェント基盤「Hatch」と新モデル「Watermelon」の噂",
+      summary: "10月の時期と結び付けて報じられているが、Meta は公式に確定していない。",
+      src: "thehansindia.com", url: SRC_AI },
+    { id: "o3", date: "2026-09-28", tags: ["ai"], sub: "OpenAI", kind: "モデル", flag: "report",
+      title: "GPT-6.1 Astra の10月公開を見送りと報道",
+      summary: "ロイターの報道として、内部テストで安全性とアライメントの懸念が見つかったため、当初予定の形での10月提供は行われない見通しと伝えられた。",
+      src: "thehansindia.com", url: SRC_AI },
+    { id: "g1", date: "2026-09-24", tags: ["ai"], sub: "Google", kind: "モデル", flag: "report",
+      title: "Gemini 4 は年内公開が近いと報道",
+      summary: "最終調整の段階にあり、2026年末より前のリリースを目指すとされる。記事内では「年末より前」と「12月の見込み」の記述が食い違っている。",
+      src: "newsbytesapp.com", url: "https://www.newsbytesapp.com/news/science/report-says-google-nearing-gemini-4-launch-before-end-2026/tldr" },
+    { id: "a7", date: "2026-09-22", tags: ["ai"], sub: "Anthropic", kind: "モデル",
+      title: "Claude Opus 5.5 を発表",
+      summary: "上位モデル Opus の新版。出典のまとめ記事では詳細に触れられていない。",
+      src: "thehansindia.com", url: SRC_AI },
+
+    /* スポーツ */
+    { id: "s2", date: "2026-10-28", tags: ["sports"], sub: "MLB", kind: "ワールドシリーズ",
+      title: "ワールドシリーズ:レイズが第4戦に4-3で勝ち、ブルワーズの3勝1敗に",
+      summary: "第1・2戦はブルワーズが勝ち、第3戦も10対1で大勝していた。第4戦(日本時間28日)はレイズが1点差で勝ち、通算はブルワーズが3勝1敗でリードしている。第5戦は日本時間29日朝9時開始の予定。両球団とも初のワールドシリーズ制覇を目指している。",
+      src: "fox13news.com", url: "https://fox13news.com/news/world-series-tampa-bay-rays-lose-milwaukee-brewers-game-2",
+      caveat: "通算成績は報道とスコアデータからの集計です" },
+    { id: "s4", date: "2026-10-26", tags: ["sports"], sub: "Jリーグ", kind: "J1順位",
+      title: "J1:町田と東京が勝点27で並び、得失点差で町田が首位",
+      summary: "12試合を終えた時点の順位。広島が勝点26で3位、柏が25で続く。下位では福岡と千葉がともに7点で並んでいる。",
+      src: "footballchannel.jp", url: "https://www.footballchannel.jp/2026/10/21/post969132/" },
+    { id: "s1", date: "2026-10-24", tags: ["sports"], sub: "NPB", kind: "日本シリーズ",
+      title: "日本シリーズ第1戦:ソフトバンクが延長11回の末に3-1で先勝",
+      summary: "横浜スタジアムでの DeNA 対ソフトバンク第1戦は、8回に牧秀悟選手の本塁打で DeNA が追いついたものの、延長11回にソフトバンクが勝ち越した。第2戦は10月25日に横浜で行われる予定だった。",
+      src: "baseballchannel.jp", url: "https://www.baseballchannel.jp/npb/297828/",
+      caveat: "第2戦以降の結果は未確認です" },
+    { id: "s3", date: "2026-10-16", tags: ["sports"], sub: "MLB", kind: "大谷翔平",
+      title: "大谷翔平、3連覇も二刀流での完走もならず",
+      summary: "NHKの解説記事は、ドジャースの大谷選手がシリーズ第4戦の直後に今季への不満を口にしたと伝えている。ワールドシリーズ3連覇と二刀流での完走を掲げていたが、どちらも実現しなかった。",
+      src: "news.web.nhk", url: "https://news.web.nhk/newsweb/na/nd-20261016de60658",
+      caveat: "記事の冒頭部分のみ確認しています" },
+
+    /* ゲーム */
+    { id: "gm1", date: "2026-10-23", tags: ["game"], sub: "発売情報", kind: "新作",
+      title: "『Call of Duty: Modern Warfare 4』が発売",
+      summary: "日本では Switch 2 版と PS5 版が10月23日に発売された。発売元として Microsoft Japan が挙がっている。",
+      src: "bestcalendar.jp", url: SRC_GAME, caveat: "発売日一覧ページの情報です" },
+    { id: "gm2", date: "2026-10-22", tags: ["game"], sub: "発売情報", kind: "新作",
+      title: "『ファイナルファンタジー レゾナンス』が Switch 2・Switch・PS5 で発売",
+      summary: "スクウェア・エニックスの新作が10月22日に発売された。同じ日に複数の作品が重なっている。",
+      src: "bestcalendar.jp", url: SRC_GAME, caveat: "発売日一覧ページの情報です" },
+    { id: "gm3", date: "2026-10-22", tags: ["game"], sub: "発売情報", kind: "新作",
+      title: "10月22日は発売が集中:Switch Sports Resort ほか",
+      summary: "『Nintendo Switch Sports Resort』『ONE PIECE 海のごちそうレストラン』『蒼き雷霆 ガンヴォルト トライアングル エディション』(Switch 2 Edition)『デモンズナイトフィーバー』などが同日に並んだ。",
+      src: "bestcalendar.jp", url: SRC_GAME, caveat: "発売日一覧ページの情報です。対応機種は各社の案内で確認を" },
+
+    /* ガジェット */
+    { id: "t3", date: "2026-10-27", tags: ["gadget"], sub: "Apple", kind: "予想", flag: "report",
+      title: "Apple の体験イベントで M6 搭載 Mac が出るとの見通し",
+      summary: "現地時間10月28日にロサンゼルスでイベントが予定され、M6 搭載 iMac や14インチ MacBook Pro、有機EL搭載の MacBook Pro の発表が予想されている。有機EL版は現行より日本で9万円ほど高くなるとの見方もある。",
+      src: "iphone-mania.jp", url: "https://iphone-mania.jp/apple-607988/",
+      caveat: "発表前の予想記事です。実際の発表内容は未確認" },
+    { id: "t1", date: "2026-10-26", tags: ["gadget"], sub: "Apple", kind: "新製品",
+      title: "新型 iPad mini(A20 Pro)を発表、11月6日発売",
+      summary: "8.5インチの有機ELと A20 Pro を採用し、Apple Pencil Pro に対応する。Wi-Fi モデルは128GBが119,800円から。予約は10月29日午前2時10分に始まる。",
+      src: "iphone-mania.jp", url: "https://iphone-mania.jp/ipadmini-607944/" },
+    { id: "t4", date: "2026-10-26", tags: ["gadget"], sub: "Apple", kind: "検証", flag: "report",
+      title: "iPhone Duo の耐久テストでヒンジ部に粉塵が入り込んだと報道",
+      summary: "IP68相当の防水防塵性能をうたう iPhone Duo の耐久テストで、ヒンジ部分から粉塵が入り込んだと伝えられた。",
+      src: "iphone-mania.jp", url: "https://iphone-mania.jp/iphone18-607927/",
+      caveat: "記事の概要のみ確認しています" }
+  ];
+
+  var FLAG_LABEL = { plan: "予定", rumor: "未確認", report: "報道ベース" };
+  var FLAGS = ["plan", "rumor", "report"];
+  var WEEK = ["日", "月", "火", "水", "木", "金", "土"];
+  var DEFAULTS = { words: { all: { watch: ["エージェント", "日本語", "Gemini 4"], mute: [] } }, subs: [], tag: "all", unconfirmed: true, limit: 20, sort: "date", days: 14, seen: [] };
+
+  /* shared state from the page database (empty when it is unavailable) */
+  var db = null, mcp = null, canWrite = true, dl = null;
+  var dbTags = [], dbNews = [], refresh = null, tagsLoaded = false;
+  var staleTimer = null, confirmDel = null;
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function strArr(a) { return Array.isArray(a) ? a.filter(function (x) { return typeof x === "string"; }) : null; }
+
+  function load() {
+    var s = clone(DEFAULTS);
+    try {
+      var raw = window.localStorage.getItem(KEY);
+      if (raw) {
+        var o = JSON.parse(raw);
+        if (o.words && typeof o.words === "object") {
+          var w = {};
+          Object.keys(o.words).forEach(function (k) {
+            var v = o.words[k];
+            if (k.length < 40 && v && typeof v === "object") w[k] = { watch: strArr(v.watch) || [], mute: strArr(v.mute) || [] };
+          });
+          if (!w.all) w.all = { watch: [], mute: [] };
+          s.words = w;
+        } else if (strArr(o.watch) || strArr(o.mute)) {
+          s.words = { all: { watch: strArr(o.watch) || [], mute: strArr(o.mute) || [] } };
+        }
+        if (strArr(o.subs)) s.subs = strArr(o.subs);
+        else if (strArr(o.orgs)) s.subs = strArr(o.orgs);
+        if (strArr(o.seen)) s.seen = strArr(o.seen);
+        if (typeof o.unconfirmed === "boolean") s.unconfirmed = o.unconfirmed;
+        if ([0, 5, 10, 20].indexOf(o.limit) >= 0) s.limit = o.limit;
+        if (o.sort === "date" || o.sort === "watch") s.sort = o.sort;
+        if ([3, 7, 14, 30].indexOf(o.days) >= 0) s.days = o.days;
+        if (typeof o.tag === "string" && o.tag.length < 40) s.tag = o.tag;
+      }
+    } catch (e) {}
+    return s;
+  }
+  function save() {
+    try { window.localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  }
+
+  var S = load();
+  function $(id) { return document.getElementById(id); }
+
+  /* watch and mute words: one set per tag, plus a shared set under "all" that applies to every tag */
+  function wordsOf(tag) {
+    if (!S.words[tag]) S.words[tag] = { watch: [], mute: [] };
+    return S.words[tag];
+  }
+  function effective(n) {
+    var watch = [], mute = [];
+    function add(list, from) {
+      from.forEach(function (w) {
+        if (!list.some(function (x) { return low(x) === low(w); })) list.push(w);
+      });
+    }
+    ["all"].concat(n.tags).forEach(function (k) {
+      var w = S.words[k];
+      if (w) { add(watch, w.watch); add(mute, w.mute); }
+    });
+    return { watch: watch, mute: mute };
+  }
+  function scopeLabel(tag) { return tag === "all" ? "共通(全タグに効く)" : tagLabel(tag) + " 用"; }
+  function fillWordChips(box, tag, kind) {
+    box.textContent = "";
+    var list = (S.words[tag] && S.words[tag][kind]) || [];
+    list.forEach(function (t, i) {
+      box.appendChild(chip(t, kind, function () { wordsOf(tag)[kind].splice(i, 1); commit(); }));
+    });
+  }
+  function sharedChips(box, tag, kind) {
+    box.textContent = "";
+    var list = (S.words.all && S.words.all[kind]) || [];
+    box.hidden = tag === "all" || !list.length;
+    if (box.hidden) return;
+    var lab = document.createElement("span");
+    lab.textContent = "共通:";
+    box.appendChild(lab);
+    list.forEach(function (t) {
+      var c = document.createElement("span");
+      c.className = "chip";
+      c.textContent = t;
+      box.appendChild(c);
+    });
+  }
+  function esc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+  function low(s) { return s.toLowerCase(); }
+
+  /* tags and news = built-in data + what the database holds */
+  function allTags() {
+    return [{ id: "all", label: "すべて" }].concat(BASE_TAGS, dbTags);
+  }
+  function tagLabel(id) {
+    var t = allTags().filter(function (x) { return x.id === id; })[0];
+    return t ? t.label : id;
+  }
+  function curTag() {
+    return allTags().some(function (t) { return t.id === S.tag; }) ? S.tag : "all";
+  }
+  function allNews() {
+    var urls = {};
+    NEWS.forEach(function (n) { urls[n.url] = true; });
+    var tagIds = {};
+    allTags().forEach(function (t) { tagIds[t.id] = true; });
+    return NEWS.concat(dbNews.filter(function (n) { return !urls[n.url] && tagIds[n.tags[0]]; }));
+  }
+
+  function fill(el, text, terms) {
+    el.textContent = "";
+    if (!terms.length) { el.textContent = text; return; }
+    var re = new RegExp("(" + terms.map(esc).join("|") + ")", "gi");
+    text.split(re).forEach(function (part, i) {
+      if (i % 2 === 1) {
+        var m = document.createElement("mark");
+        m.textContent = part;
+        el.appendChild(m);
+      } else if (part) {
+        el.appendChild(document.createTextNode(part));
+      }
+    });
+  }
+
+  function hits(item, terms) {
+    var hay = low(item.title + " " + item.summary);
+    return terms.filter(function (t) { return hay.indexOf(low(t)) >= 0; });
+  }
+  function inTag(n, t) { return t === "all" || n.tags.indexOf(t) >= 0; }
+  function passGlobal(n) {
+    if (!S.unconfirmed && (n.flag === "plan" || n.flag === "rumor")) return false;
+    if (hits(n, effective(n).mute).length) return false;
+    return true;
+  }
+  function isUnread(n) { return S.seen.indexOf(n.id) < 0; }
+  function subsFor(tag, news) {
+    var out = [];
+    news.forEach(function (n) { if (inTag(n, tag) && out.indexOf(n.sub) < 0) out.push(n.sub); });
+    return out;
+  }
+
+  function compute() {
+    var tag = curTag();
+    var news = allNews();
+    var base = news.filter(passGlobal);
+    var counts = {}, unread = {};
+    allTags().forEach(function (t) {
+      var list = base.filter(function (n) { return inTag(n, t.id); });
+      counts[t.id] = list.length;
+      unread[t.id] = list.filter(isUnread).length;
+    });
+    var scoped = base.filter(function (n) { return inTag(n, tag); });
+    var scopeSubs = subsFor(tag, news);
+    var sel = S.subs.filter(function (s) { return scopeSubs.indexOf(s) >= 0; });
+    var filtered = sel.length ? scoped.filter(function (n) { return sel.indexOf(n.sub) >= 0; }) : scoped;
+    var rows = filtered.map(function (n, i) {
+      var w = effective(n).watch;
+      return { n: n, w: w, h: hits(n, w), i: i };
+    });
+    rows.sort(function (a, b) {
+      if (S.sort === "watch" && (a.h.length > 0) !== (b.h.length > 0)) return a.h.length > 0 ? -1 : 1;
+      if (a.n.date !== b.n.date) return a.n.date < b.n.date ? 1 : -1;
+      return a.i - b.i;
+    });
+    var shown = S.limit ? rows.slice(0, S.limit) : rows;
+    return { tag: tag, rows: rows, shown: shown, counts: counts, unread: unread, scopeSubs: scopeSubs, scoped: scoped };
+  }
+
+  function chip(text, cls, onRemove) {
+    var c = document.createElement("span");
+    c.className = "chip " + cls;
+    c.appendChild(document.createTextNode(text));
+    var x = document.createElement("button");
+    x.type = "button";
+    x.className = "x";
+    x.textContent = "×";
+    x.setAttribute("aria-label", text + "を削除");
+    x.addEventListener("click", onRemove);
+    c.appendChild(x);
+    return c;
+  }
+
+  function renderMenu(c) {
+    var ul = $("menu-list");
+    ul.textContent = "";
+    allTags().forEach(function (t) {
+      var li = document.createElement("li");
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "tag-btn";
+      b.setAttribute("aria-current", c.tag === t.id ? "true" : "false");
+      var l = document.createElement("span");
+      l.className = "lbl";
+      l.textContent = t.label;
+      if (c.unread[t.id] > 0) {
+        var d = document.createElement("i");
+        d.className = "udot";
+        d.setAttribute("title", "未読 " + c.unread[t.id] + "件");
+        l.appendChild(d);
+      }
+      var n = document.createElement("span");
+      n.className = "cnt";
+      n.textContent = String(c.counts[t.id]);
+      b.appendChild(l);
+      b.appendChild(n);
+      b.addEventListener("click", function () { S.tag = t.id; closeMenu(); commit(); });
+      li.appendChild(b);
+      ul.appendChild(li);
+    });
+    $("menu-label").textContent = tagLabel(c.tag);
+    $("tag-add").hidden = !(db && canWrite);
+  }
+
+  function renderChips(c) {
+    $("watch-scope").textContent = scopeLabel(c.tag);
+    $("mute-scope").textContent = scopeLabel(c.tag);
+    fillWordChips($("watch-chips"), c.tag, "watch");
+    fillWordChips($("mute-chips"), c.tag, "mute");
+    sharedChips($("watch-shared"), c.tag, "watch");
+    sharedChips($("mute-shared"), c.tag, "mute");
+    var o = $("sub-chips"); o.textContent = "";
+    $("sub-group").hidden = c.scopeSubs.length < 2;
+    c.scopeSubs.forEach(function (name) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip";
+      b.textContent = name;
+      b.setAttribute("aria-pressed", S.subs.indexOf(name) >= 0 ? "true" : "false");
+      b.addEventListener("click", function () {
+        var k = S.subs.indexOf(name);
+        if (k >= 0) S.subs.splice(k, 1); else S.subs.push(name);
+        commit();
+      });
+      o.appendChild(b);
+    });
+  }
+
+  function renderCustom() {
+    var g = $("custom-group");
+    var list = $("custom-list");
+    list.textContent = "";
+    g.hidden = !(db && canWrite && dbTags.length);
+    dbTags.forEach(function (t) {
+      var row = document.createElement("div");
+      row.className = "custom-row";
+      var nm = document.createElement("div");
+      nm.className = "nm";
+      nm.appendChild(document.createTextNode(t.label));
+      var q = document.createElement("span");
+      q.className = "q";
+      q.textContent = t.query;
+      nm.appendChild(q);
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn" + (confirmDel === t.id ? " danger" : "");
+      b.textContent = confirmDel === t.id ? "本当に削除" : "削除";
+      b.addEventListener("click", function () {
+        if (confirmDel === t.id) { confirmDel = null; deleteTag(t.id); }
+        else { confirmDel = t.id; renderCustom(); }
+      });
+      row.appendChild(nm);
+      row.appendChild(b);
+      list.appendChild(row);
+    });
+  }
+
+  function renderSummary(c) {
+    var sel = S.subs.filter(function (s) { return c.scopeSubs.indexOf(s) >= 0; });
+    var own = S.words[c.tag] || { watch: [], mute: [] };
+    $("settings-summary").textContent =
+      (c.tag === "all" ? "共通" : tagLabel(c.tag)) + " · ウォッチ " + own.watch.length + " · ミュート " + own.mute.length + " · " +
+      (sel.length ? sel.join("/") : "絞り込みなし") + " · " + (S.limit ? S.limit + "件" : "全件");
+  }
+
+  function renderStats(c) {
+    var unread = c.scoped.filter(isUnread).length;
+    var matched = c.rows.filter(function (r) { return r.h.length > 0; }).length;
+    var st = $("stats");
+    st.textContent = "";
+    [["表示", c.shown.length + "/" + c.rows.length + "件"], ["未読", unread + "件"], ["ウォッチ一致", matched + "件"]].forEach(function (p) {
+      var s = document.createElement("span");
+      s.appendChild(document.createTextNode(p[0] + " "));
+      var b = document.createElement("b");
+      b.textContent = p[1];
+      s.appendChild(b);
+      st.appendChild(s);
+    });
+    $("view-title").textContent = tagLabel(c.tag);
+    $("view-count").textContent = c.rows.length + "件";
+  }
+
+  function markRead(id, li) {
+    if (S.seen.indexOf(id) < 0) { S.seen.push(id); save(); }
+    li.dataset.unread = "false";
+    var c = compute();
+    renderStats(c);
+    renderMenu(c);
+  }
+
+  function renderFeed(c) {
+    var feed = $("feed");
+    feed.textContent = "";
+    if (!c.shown.length) {
+      var e = document.createElement("li");
+      e.className = "empty";
+      var canFetch = !!(db && mcp && canWrite);
+      if (c.scoped.length === 0 && c.tag !== "all") {
+        e.textContent = canFetch
+          ? "このタグのニュースはまだありません。「最新を取得」で Claude が探して追加します。"
+          : "このタグのニュースはまだありません。";
+        if (canFetch) {
+          var wrapF = document.createElement("div");
+          var bf = document.createElement("button");
+          bf.type = "button"; bf.className = "btn primary"; bf.textContent = "↻ 最新を取得";
+          bf.addEventListener("click", requestRefresh);
+          wrapF.appendChild(bf); e.appendChild(wrapF);
+        }
+      } else {
+        e.textContent = "条件に合うニュースがありません。ミュートワードや絞り込みをゆるめてください。";
+        var wrap = document.createElement("div");
+        var btn = document.createElement("button");
+        btn.type = "button"; btn.className = "btn"; btn.textContent = "設定を初期化";
+        btn.addEventListener("click", resetAll);
+        wrap.appendChild(btn); e.appendChild(wrap);
+      }
+      feed.appendChild(e);
+      return;
+    }
+    c.shown.forEach(function (r) {
+      var n = r.n;
+      var p = n.date.split("-");
+      var d = new Date(+p[0], +p[1] - 1, +p[2]);
+      var li = document.createElement("li");
+      li.className = "item";
+      li.dataset.unread = isUnread(n) ? "true" : "false";
+
+      var when = document.createElement("div");
+      when.className = "when";
+      when.innerHTML = '<span class="md"></span><span class="wd"></span><span class="dot" aria-hidden="true"></span>';
+      when.querySelector(".md").textContent = (+p[1]) + "/" + (+p[2]);
+      when.querySelector(".wd").textContent = WEEK[d.getDay()];
+      li.appendChild(when);
+
+      var body = document.createElement("div");
+      body.className = "body";
+
+      var meta = document.createElement("div");
+      meta.className = "meta";
+      var org = document.createElement("span"); org.className = "org"; org.textContent = n.sub; meta.appendChild(org);
+      if (c.tag === "all") {
+        var tg = document.createElement("span");
+        tg.textContent = n.tags.map(tagLabel).join(" / ");
+        meta.appendChild(tg);
+      }
+      var kind = document.createElement("span"); kind.textContent = n.kind; meta.appendChild(kind);
+      if (n.flag) {
+        var bd = document.createElement("span"); bd.className = "badge"; bd.textContent = FLAG_LABEL[n.flag]; meta.appendChild(bd);
+      }
+      body.appendChild(meta);
+
+      var h = document.createElement("h3"); h.className = "title";
+      var a = document.createElement("a");
+      a.href = n.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+      fill(a, n.title, r.w);
+      h.appendChild(a);
+      body.appendChild(h);
+
+      var sum = document.createElement("p"); sum.className = "sum";
+      fill(sum, n.summary, r.w);
+      body.appendChild(sum);
+
+      var foot = document.createElement("div"); foot.className = "foot";
+      var a2 = document.createElement("a");
+      a2.href = n.url; a2.target = "_blank"; a2.rel = "noopener noreferrer";
+      a2.textContent = "記事を開く ↗ " + n.src;
+      foot.appendChild(a2);
+      if (r.h.length) {
+        var hh = document.createElement("span"); hh.textContent = "ウォッチ: " + r.h.join("、"); foot.appendChild(hh);
+      }
+      if (n.caveat) {
+        var cv = document.createElement("span"); cv.textContent = n.caveat; foot.appendChild(cv);
+      }
+      body.appendChild(foot);
+      li.appendChild(body);
+
+      [a, a2].forEach(function (el) {
+        el.addEventListener("click", function () { markRead(n.id, li); });
+        el.addEventListener("auxclick", function () { markRead(n.id, li); });
+      });
+      feed.appendChild(li);
+    });
+  }
+
+  function daysLabel(d) {
+    return d === 3 ? "直近3日" : d === 7 ? "直近1週間" : d === 14 ? "直近2週間" : d === 30 ? "直近1か月" : "直近" + d + "日";
+  }
+
+  function fmtTime(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    var pad = function (x) { return (x < 10 ? "0" : "") + x; };
+    return (d.getMonth() + 1) + "/" + d.getDate() + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+
+  function renderRefresh() {
+    var row = $("refresh-row");
+    row.hidden = !(db && mcp && canWrite);
+    if (row.hidden) return;
+    var btn = $("refresh-btn");
+    var st = $("refresh-status");
+    var r = refresh;
+    var active = false, text = "";
+    if (staleTimer) { clearTimeout(staleTimer); staleTimer = null; }
+    if (!r || typeof r.status !== "string") {
+      text = "表示中のタグ(" + tagLabel(curTag()) + ")の最新ニュースを Claude が探します。";
+    } else if (r.status === "requested" || r.status === "running") {
+      var age = Date.now() - Date.parse(r.requestedAt || "");
+      var target = typeof r.scope === "string" ? "(" + tagLabel(r.scope) + ")" : "";
+      if (isFinite(age) && age > 15 * 60 * 1000) {
+        text = "15分以上応答がありません。もう一度押してください。";
+      } else {
+        active = true;
+        text = (r.status === "running" ? "取得中です" : "取得を依頼しました") + target +
+          (typeof r.days === "number" ? "、" + daysLabel(r.days) : "") + "。数分かかります。";
+        staleTimer = setTimeout(renderRefresh, 60000);
+      }
+    } else if (r.status === "done") {
+      text = "最終取得 " + fmtTime(r.finishedAt) + (typeof r.added === "number" ? " · " + r.added + "件を追加" : "") +
+        (typeof r.message === "string" && r.message ? " · " + r.message : "");
+    } else if (r.status === "error") {
+      text = "取得に失敗しました:" + (typeof r.message === "string" && r.message ? r.message : "理由は不明です");
+    }
+    btn.disabled = active;
+    st.textContent = text;
+  }
+
+  function mcpErrorCopy(e) {
+    var code = e && e.code;
+    if (code === "server_not_connected" || code === "selection_required") return "「Claude Code Remote」コネクタが見つかりません。claude.ai の設定でコネクタを確認してください。";
+    if (code === "not_in_manifest" || code === "approval_required" || code === "not_granted") return "このページからの実行が許可されていません。確認が表示されたら許可してください。";
+    if (code === "needs_reauth") return "コネクタの再接続が必要です。claude.ai の設定から接続し直してください。";
+    if (code === "tool_error") return "スケジュールタスクを起動できませんでした。タスクが削除されていないか確認してください。";
+    return "起動に失敗しました。時間をおいてもう一度お試しください。";
+  }
+
+  async function requestRefresh() {
+    if (!db || !mcp) return;
+    if (refresh && (refresh.status === "requested" || refresh.status === "running")) {
+      var age = Date.now() - Date.parse(refresh.requestedAt || "");
+      if (isFinite(age) && age <= 15 * 60 * 1000) return;
+    }
+    var scope = curTag();
+    var list = allTags().filter(function (t) { return t.id !== "all" && (scope === "all" || t.id === scope); })
+      .map(function (t) { return { id: t.id, label: t.label, query: t.query || t.label }; });
+    $("refresh-btn").disabled = true;
+    $("refresh-status").textContent = "依頼しています…";
+    try {
+      await db.doc("meta/refresh").set({ status: "requested", scope: scope, tags: list, days: S.days, requestedAt: new Date().toISOString() });
+    } catch (e) {
+      $("refresh-status").textContent = "依頼を保存できませんでした。もう一度お試しください。";
+      $("refresh-btn").disabled = false;
+      return;
+    }
+    try {
+      await mcp.callTool(CONNECTOR, "fire_trigger", { trigger_id: TRIGGER_ID, text: "scope=" + scope });
+    } catch (e) {
+      try { await db.doc("meta/refresh").update({ status: "error", message: mcpErrorCopy(e) }); } catch (x) {}
+    }
+  }
+
+  function syncControls() {
+    $("opt-unconfirmed").checked = S.unconfirmed;
+    $("opt-limit").value = String(S.limit);
+    $("opt-sort").value = S.sort;
+    $("refresh-days").value = String(S.days);
+  }
+
+  function renderAll() {
+    var c = compute();
+    renderMenu(c);
+    renderChips(c);
+    renderCustom();
+    renderSummary(c);
+    renderFeed(c);
+    renderStats(c);
+    renderRefresh();
+  }
+  function commit() { save(); renderAll(); }
+
+  function resetAll() {
+    var seen = S.seen, tag = S.tag;
+    S = clone(DEFAULTS);
+    S.seen = seen;
+    S.tag = tag;
+    syncControls();
+    commit();
+  }
+
+  function addWord(list, input) {
+    var v = input.value.trim();
+    if (!v) return;
+    var arr = wordsOf(curTag())[list];
+    var exists = arr.some(function (t) { return low(t) === low(v); });
+    if (!exists) arr.push(v);
+    input.value = "";
+    commit();
+  }
+
+  /* tags in the database */
+  async function addTag(e) {
+    e.preventDefault();
+    var msg = $("tag-msg");
+    msg.textContent = "";
+    var name = $("tag-name").value.trim();
+    var query = $("tag-query").value.trim();
+    if (!db) return;
+    if (!name) { msg.textContent = "タグの名前を入力してください。"; return; }
+    if (allTags().some(function (t) { return low(t.label) === low(name); })) { msg.textContent = "同じ名前のタグがあります。"; return; }
+    var id = "t-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    try {
+      await db.doc("tags/" + id).set({ label: name, query: query || name, createdAt: new Date().toISOString() });
+      S.tag = id;
+      $("tag-name").value = "";
+      $("tag-query").value = "";
+      setTagForm(false);
+      closeMenu();
+      commit();
+    } catch (err) {
+      msg.textContent = err && err.code === "quota_exceeded" ? "保存の上限に達しています。" : "追加できませんでした。このページを編集できる権限が必要です。";
+    }
+  }
+
+  async function deleteTag(id) {
+    try {
+      var q = await db.collection("news").where("tag", "==", id).get();
+      for (var i = 0; i < q.docs.length; i++) { await db.doc("news/" + q.docs[i].id).delete(); }
+      await db.doc("tags/" + id).delete();
+      if (S.words[id]) { delete S.words[id]; save(); }
+      if (S.tag === id) { S.tag = "all"; save(); }
+    } catch (err) {
+      $("refresh-status").textContent = "タグを削除できませんでした。";
+    }
+  }
+
+  function setTagForm(open) {
+    $("tag-form").hidden = !open;
+    $("tag-add-btn").setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) { $("tag-name").focus(); }
+  }
+
+  function okUrl(u) { return typeof u === "string" && /^https?:\/\//i.test(u) && u.length < 600; }
+  function str(v, max) { return typeof v === "string" ? v.slice(0, max) : ""; }
+
+  function startDb() {
+    var c = window.claude;
+    if (!c || typeof c.use !== "function") return;
+    Promise.all([c.use("db"), c.use("user"), c.use("mcp")]).then(function (r) {
+      if (!r[0]) return;
+      db = r[0];
+      mcp = r[2] || null;
+      var user = r[1];
+      var pw = user && typeof user.can === "function" ? user.can("data.write") : Promise.resolve(null);
+      return pw.then(function (ok) {
+        canWrite = ok !== false;
+        db.collection("tags").onSnapshot(function (snap) {
+          dbTags = snap.docs.map(function (d) {
+            var x = d.data() || {};
+            return { id: d.id, label: str(x.label, 20), query: str(x.query, 80), createdAt: str(x.createdAt, 40) };
+          }).filter(function (t) { return t.label; }).sort(function (a, b) { return a.createdAt < b.createdAt ? -1 : 1; });
+          tagsLoaded = true;
+          if (!allTags().some(function (t) { return t.id === S.tag; })) { S.tag = "all"; save(); }
+          renderAll();
+        }, function () {});
+        db.collection("news").onSnapshot(function (snap) {
+          dbNews = snap.docs.map(function (d) {
+            var x = d.data() || {};
+            if (!okUrl(x.url) || typeof x.title !== "string" || typeof x.tag !== "string") return null;
+            if (typeof x.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(x.date)) return null;
+            var item = {
+              id: "db-" + d.id, date: x.date, tags: [x.tag],
+              sub: str(x.sub, 12) || "ニュース", kind: str(x.kind, 12) || "記事",
+              title: str(x.title, 120), summary: str(x.summary, 600),
+              src: str(x.src, 60) || "出典", url: x.url
+            };
+            if (FLAGS.indexOf(x.flag) >= 0) item.flag = x.flag;
+            if (typeof x.caveat === "string" && x.caveat) item.caveat = str(x.caveat, 120);
+            return item;
+          }).filter(Boolean);
+          renderAll();
+        }, function () {});
+        db.doc("meta/refresh").onSnapshot(function (snap) {
+          refresh = snap.exists ? snap.data() : null;
+          renderRefresh();
+          if (refresh && refresh.status === "done") renderAll();
+        }, function () {});
+        renderAll();
+      });
+    }).catch(function () {});
+  }
+
+  /* export / import as JSON */
+  function ioMsg(t) { $("io-msg").textContent = t; }
+  function keyOf(id) {
+    /* base tags and "all" keep their id; custom tags travel by label so they survive a move */
+    if (id === "all" || BASE_TAGS.some(function (b) { return b.id === id; })) return id;
+    return tagLabel(id);
+  }
+  function buildExport() {
+    var words = {};
+    Object.keys(S.words).forEach(function (k) {
+      var w = S.words[k];
+      if (!w || (!w.watch.length && !w.mute.length)) return;
+      if (k !== "all" && !allTags().some(function (t) { return t.id === k; })) return;
+      words[keyOf(k)] = { watch: w.watch.slice(), mute: w.mute.slice() };
+    });
+    return {
+      app: "news-desk", version: 1, exportedAt: new Date().toISOString(),
+      tags: dbTags.map(function (t) { return { label: t.label, query: t.query }; }),
+      words: words,
+      settings: { subs: S.subs.slice(), unconfirmed: S.unconfirmed, limit: S.limit, sort: S.sort, days: S.days },
+      news: dbNews.map(function (n) {
+        var o = { tag: keyOf(n.tags[0]), date: n.date, sub: n.sub, kind: n.kind, title: n.title, summary: n.summary, url: n.url, src: n.src };
+        if (n.flag) o.flag = n.flag;
+        if (n.caveat) o.caveat = n.caveat;
+        return o;
+      })
+    };
+  }
+  function doExport() {
+    var o = buildExport();
+    $("io-text").value = JSON.stringify(o, null, 2);
+    ioMsg("書き出しました(タグ " + o.tags.length + " 件、ニュース " + o.news.length + " 件)。コピーするか、ファイルに保存してください。");
+  }
+  function doCopy() {
+    var ta = $("io-text");
+    if (!ta.value) doExport();
+    ta.focus(); ta.select();
+    var done = false;
+    try { done = document.execCommand("copy"); } catch (e) {}
+    if (!done && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(ta.value).then(function () { ioMsg("コピーしました。"); }, function () { ioMsg("コピーできませんでした。選択された状態なので、手動でコピーしてください。"); });
+      return;
+    }
+    ioMsg(done ? "コピーしました。" : "コピーできませんでした。選択された状態なので、手動でコピーしてください。");
+  }
+  function doSave() {
+    var ta = $("io-text");
+    if (!ta.value) doExport();
+    if (!dl) { ioMsg("この環境ではファイル保存ができません。「コピー」を使ってください。"); return; }
+    dl.save({ filename: "news-desk-" + new Date().toISOString().slice(0, 10) + ".json", data: ta.value }).then(
+      function () { ioMsg("ファイルに保存しました。"); },
+      function (e) { ioMsg(e && e.code === "declined" ? "保存をキャンセルしました。" : "ファイル保存ができませんでした。「コピー」を使ってください。"); }
+    );
+  }
+  function hash8(s) {
+    var h = 0x811c9dc5;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return ("00000000" + h.toString(16)).slice(-8);
+  }
+  function mergeWords(dst, src) {
+    src.watch.concat([]).forEach(function (w) { if (!dst.watch.some(function (x) { return low(x) === low(w); })) dst.watch.push(w); });
+    src.mute.forEach(function (w) { if (!dst.mute.some(function (x) { return low(x) === low(w); })) dst.mute.push(w); });
+  }
+  async function doImport() {
+    var o;
+    try { o = JSON.parse($("io-text").value); } catch (e) { ioMsg("JSONとして読み込めませんでした。"); return; }
+    if (!o || typeof o !== "object" || o.app !== "news-desk" || !Array.isArray(o.tags) && !o.words && !Array.isArray(o.news)) { ioMsg("このページ用のJSONではありません。"); return; }
+    var res = { tags: 0, words: 0, news: 0, skipped: 0, note: "" };
+    var keyToId = {};
+    function resolve(k) {
+      if (typeof k !== "string") return null;
+      if (k === "all" || BASE_TAGS.some(function (b) { return b.id === k; })) return k;
+      if (keyToId[k]) return keyToId[k];
+      var t = allTags().filter(function (x) { return x.id !== "all" && low(x.label) === low(k); })[0];
+      return t ? t.id : null;
+    }
+    /* tags */
+    var tl = Array.isArray(o.tags) ? o.tags.slice(0, 50) : [];
+    if (tl.length) {
+      if (!db || !canWrite) { res.note += "タグとニュースは、このページを編集できる環境でのみ取り込めます。"; }
+      else {
+        for (var i = 0; i < tl.length; i++) {
+          var t = tl[i];
+          if (!t || typeof t.label !== "string" || !t.label.trim()) continue;
+          var label = t.label.trim().slice(0, 20);
+          var ex = allTags().filter(function (x) { return x.id !== "all" && low(x.label) === low(label); })[0];
+          if (ex) { keyToId[label] = ex.id; continue; }
+          var id = "t-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+          try {
+            await db.doc("tags/" + id).set({ label: label, query: str(t.query, 80) || label, createdAt: new Date().toISOString() });
+            keyToId[label] = id; res.tags++;
+          } catch (e) { res.note += "タグ「" + label + "」を追加できませんでした。"; }
+        }
+      }
+    }
+    /* words */
+    if (o.words && typeof o.words === "object") {
+      Object.keys(o.words).forEach(function (k) {
+        var id = resolve(k), v = o.words[k];
+        if (!id || !v || typeof v !== "object") return;
+        var src = { watch: (strArr(v.watch) || []).slice(0, 100).map(function (x) { return x.slice(0, 40); }), mute: (strArr(v.mute) || []).slice(0, 100).map(function (x) { return x.slice(0, 40); }) };
+        var dst = wordsOf(id), before = dst.watch.length + dst.mute.length;
+        mergeWords(dst, src);
+        res.words += dst.watch.length + dst.mute.length - before;
+      });
+    }
+    /* settings */
+    var st = o.settings;
+    if (st && typeof st === "object") {
+      if (strArr(st.subs)) S.subs = strArr(st.subs);
+      if (typeof st.unconfirmed === "boolean") S.unconfirmed = st.unconfirmed;
+      if ([0, 5, 10, 20].indexOf(st.limit) >= 0) S.limit = st.limit;
+      if (st.sort === "date" || st.sort === "watch") S.sort = st.sort;
+      if ([3, 7, 14, 30].indexOf(st.days) >= 0) S.days = st.days;
+    }
+    /* news */
+    var nl = Array.isArray(o.news) ? o.news.slice(0, 300) : [];
+    if (nl.length && db && canWrite) {
+      var urls = {};
+      allNews().forEach(function (n) { urls[n.url] = true; });
+      for (var j = 0; j < nl.length; j++) {
+        var n = nl[j], tid = n && resolve(n.tag);
+        if (!n || !tid || tid === "all" || !okUrl(n.url) || typeof n.title !== "string" || typeof n.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(n.date)) { res.skipped++; continue; }
+        if (urls[n.url]) { res.skipped++; continue; }
+        var d = { tag: tid, date: n.date, sub: str(n.sub, 12), kind: str(n.kind, 12), title: str(n.title, 120), summary: str(n.summary, 600), url: n.url, src: str(n.src, 60), fetchedAt: new Date().toISOString() };
+        if (FLAGS.indexOf(n.flag) >= 0) d.flag = n.flag;
+        if (typeof n.caveat === "string" && n.caveat) d.caveat = str(n.caveat, 120);
+        try { await db.doc("news/" + tid + "-" + hash8(n.url)).set(d); urls[n.url] = true; res.news++; }
+        catch (e) { res.skipped++; }
+      }
+    }
+    syncControls();
+    commit();
+    ioMsg("取り込みました。タグ " + res.tags + " 件、ワード " + res.words + " 件、ニュース " + res.news + " 件を追加(重複・不正 " + res.skipped + " 件は除外)。" + res.note);
+  }
+
+  function openMenu() {
+    document.body.classList.add("menu-open");
+    $("scrim").hidden = false;
+    $("menu-btn").setAttribute("aria-expanded", "true");
+  }
+  function closeMenu() {
+    document.body.classList.remove("menu-open");
+    $("scrim").hidden = true;
+    $("menu-btn").setAttribute("aria-expanded", "false");
+  }
+
+  $("menu-btn").addEventListener("click", function () {
+    if (document.body.classList.contains("menu-open")) closeMenu(); else openMenu();
+  });
+  $("scrim").addEventListener("click", closeMenu);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeMenu(); });
+
+  $("tag-add-btn").addEventListener("click", function () { setTagForm($("tag-form").hidden); });
+  $("tag-cancel").addEventListener("click", function () { $("tag-msg").textContent = ""; setTagForm(false); });
+  $("tag-form").addEventListener("submit", addTag);
+  $("refresh-btn").addEventListener("click", requestRefresh);
+
+  $("watch-form").addEventListener("submit", function (e) { e.preventDefault(); addWord("watch", $("watch-input")); });
+  $("mute-form").addEventListener("submit", function (e) { e.preventDefault(); addWord("mute", $("mute-input")); });
+  $("opt-unconfirmed").addEventListener("change", function (e) { S.unconfirmed = e.target.checked; commit(); });
+  $("opt-limit").addEventListener("change", function (e) { S.limit = parseInt(e.target.value, 10); commit(); });
+  $("opt-sort").addEventListener("change", function (e) { S.sort = e.target.value; commit(); });
+  $("refresh-days").addEventListener("change", function (e) { S.days = parseInt(e.target.value, 10); save(); });
+  $("mark-all").addEventListener("click", function () {
+    var tag = curTag();
+    allNews().forEach(function (n) { if (inTag(n, tag) && S.seen.indexOf(n.id) < 0) S.seen.push(n.id); });
+    commit();
+  });
+  $("reset").addEventListener("click", resetAll);
+  $("io-export").addEventListener("click", doExport);
+  $("io-copy").addEventListener("click", doCopy);
+  $("io-save").addEventListener("click", doSave);
+  $("io-import").addEventListener("click", doImport);
+  $("io-file").addEventListener("change", function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    if (f.size > 2000000) { ioMsg("ファイルが大きすぎます(2MBまで)。"); return; }
+    var r = new FileReader();
+    r.onload = function () { $("io-text").value = String(r.result); ioMsg("読み込みました。「取り込む」を押すと反映されます。"); };
+    r.onerror = function () { ioMsg("ファイルを読み込めませんでした。"); };
+    r.readAsText(f);
+  });
+
+  $("io-save").hidden = true;
+  try {
+    if (window.claude && typeof window.claude.use === "function") {
+      window.claude.use("downloads").then(function (d) { if (d) { dl = d; $("io-save").hidden = false; } }, function () {});
+    }
+  } catch (e) {}
+
+  syncControls();
+  renderAll();
+  startDb();
+})();
+</script>
